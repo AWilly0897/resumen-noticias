@@ -1,6 +1,7 @@
 from flask import Flask
 import requests
 from datetime import datetime, timedelta
+import os
 
 app = Flask(__name__)
 
@@ -11,8 +12,11 @@ def resumen():
     inicio = hoy - timedelta(days=7)
     fecha_inicio = inicio.strftime("%Y-%m-%d")
 
-    # Ejemplo con NewsAPI (requiere API key gratuita)
-    url = f"https://newsapi.org/v2/everything?q=politica+economia&from={fecha_inicio}&sortBy=publishedAt&apiKey=TU_API_KEY"
+    # Obtener la API Key desde variable de entorno
+    api_key = os.environ.get("NEWSAPI_KEY")
+
+    # Construir la URL con la clave
+    url = f"https://newsapi.org/v2/everything?q=politica+economia&from={fecha_inicio}&sortBy=publishedAt&apiKey={api_key}"
     resp = requests.get(url).json()
 
     # Generar resumen simple
@@ -26,4 +30,6 @@ def resumen():
     return html
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+
