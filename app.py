@@ -16,6 +16,7 @@ def guardar_articulo(titulo, descripcion, cuerpo, fuente, fecha):
         "fecha": fecha,
         "estado": "pendiente"
     }
+    os.makedirs("data", exist_ok=True)
     with open("data/index.json", "a", encoding="utf-8") as f:
         f.write(json.dumps(entrada) + "\n")
 
@@ -26,6 +27,7 @@ def comentario_ia(titulo):
     }
 
 def guardar_comentario(comentario):
+    os.makedirs("data", exist_ok=True)
     with open("data/comentarios.json", "a", encoding="utf-8") as f:
         f.write(json.dumps(comentario) + "\n")
 
@@ -53,10 +55,26 @@ def resumen():
         guardar_articulo(titulo, descripcion, cuerpo, fuente, fecha)
         guardar_comentario(comentario_ia(titulo))
 
-    html = "<h1>Resumen semanal de política y economía</h1><ul>"
+    # Generar HTML con favicon
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Resumen semanal de política y economía</title>
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    </head>
+    <body>
+        <h1>Resumen semanal de política y economía</h1>
+        <ul>
+    """
     for t in titulares:
         html += f"<li>{t}</li>"
-    html += "</ul>"
+    html += """
+        </ul>
+    </body>
+    </html>
+    """
     return html
 
 @app.route("/ver")
@@ -120,3 +138,5 @@ def publicar():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
+
