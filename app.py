@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, url_for
 import requests
 from datetime import datetime, timedelta
 import os
@@ -40,6 +40,16 @@ def guardar_comentario(comentario):
     with open("data/comentarios.json", "a", encoding="utf-8") as f:
         f.write(json.dumps(comentario) + "\n")
 
+# --- Menú de navegación fijo ---
+def menu():
+    return """
+    <nav style="background-color:#eee;padding:10px;">
+        <a href="/">Resumen</a> |
+        <a href="/ver">Índice</a> |
+        <a href="/publicar">Publicar</a>
+    </nav>
+    """
+
 # --- Rutas principales ---
 @app.route("/")
 def resumen():
@@ -72,16 +82,17 @@ def resumen():
         guardar_comentario(comentario_ia(titulo))
         titulares.append(titulo)
 
-    # Generar HTML con Favicon
-    html = """
+    # Generar HTML con Favicon y menú
+    html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
         <title>Resumen semanal de política y economía</title>
-        <link rel="icon" href="/Favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="{url_for('static', filename='Favicon.ico')}" type="image/x-icon" />
     </head>
     <body>
+        {menu()}
         <h1>Resumen semanal de política y economía</h1>
         <ul>
     """
@@ -102,7 +113,7 @@ def ver_indice():
     except FileNotFoundError:
         entradas = []
 
-    html = "<h1>Índice editorial</h1><ul>"
+    html = f"<h1>Índice editorial</h1>{menu()}<ul>"
     for e in entradas:
         html += f"<li>{e['fecha']} - {e['titulo']} - {e['estado']} "
         html += f"<a href='/aprobar?titulo={e['titulo']}'>[Aprobar]</a></li>"
@@ -175,13 +186,13 @@ def publicar():
 
     # Verificar si todos están aprobados
     if all(e["estado"] == "aprobado" for e in entradas):
-        html = "<h1>Artículos publicados</h1><ul>"
+        html = f"<h1>Artículos publicados</h1>{menu()}<ul>"
         for e in entradas:
             html += f"<li>{e['fecha']} - {e['titulo']} - {e['descripcion']}</li>"
         html += "</ul>"
         return html
     else:
-        html = "<h1>No todos los artículos están aprobados</h1><ul>"
+        html = f"<h1>No todos los artículos están aprobados</h1>{menu()}<ul>"
         for e in entradas:
             html += f"<li>{e['fecha']} - {e['titulo']} - {e['estado']}</li>"
         html += "</ul>"
