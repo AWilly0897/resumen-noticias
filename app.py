@@ -8,6 +8,16 @@ app = Flask(__name__)
 
 # --- Funciones auxiliares ---
 def guardar_articulo(titulo, descripcion, cuerpo, fuente, fecha):
+    os.makedirs("data", exist_ok=True)
+    existentes = []
+    if os.path.exists("data/index.json"):
+        with open("data/index.json", encoding="utf-8") as f:
+            existentes = [json.loads(line) for line in f]
+
+    # Evitar duplicados por título
+    if any(e["titulo"] == titulo for e in existentes):
+        return
+
     entrada = {
         "titulo": titulo,
         "descripcion": descripcion,
@@ -16,7 +26,6 @@ def guardar_articulo(titulo, descripcion, cuerpo, fuente, fecha):
         "fecha": fecha,
         "estado": "pendiente"
     }
-    os.makedirs("data", exist_ok=True)
     with open("data/index.json", "a", encoding="utf-8") as f:
         f.write(json.dumps(entrada) + "\n")
 
@@ -42,11 +51,18 @@ def resumen():
     url = f"https://newsapi.org/v2/everything?q=politica+economia&from={fecha_inicio}&sortBy=publishedAt&apiKey={api_key}"
     resp = requests.get(url).json()
 
-    titulares = [art["title"] for art in resp.get("articles", [])[:10]]
+    # Leer artículos existentes para evitar duplicados
+    existentes = []
+    if os.path.exists("data/index.json"):
+        with open("data/index.json", encoding="utf-8") as f:
+            existentes = [json.loads(line) for line in f]
 
-    # Guardar artículos y comentarios
+    titulares = []
     for art in resp.get("articles", [])[:10]:
         titulo = art["title"]
+        if any(e["titulo"] == titulo for e in existentes):
+            continue  # Saltar si ya existe
+
         descripcion = art.get("description", "Sin descripción")
         cuerpo = art.get("content", "Sin cuerpo disponible")
         fuente = art["source"]["name"]
@@ -54,15 +70,16 @@ def resumen():
 
         guardar_articulo(titulo, descripcion, cuerpo, fuente, fecha)
         guardar_comentario(comentario_ia(titulo))
+        titulares.append(titulo)
 
-    # Generar HTML con favicon
+    # Generar HTML con Favicon
     html = """
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
         <title>Resumen semanal de política y economía</title>
-        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="/Favicon.ico" type="image/x-icon" />
     </head>
     <body>
         <h1>Resumen semanal de política y economía</h1>
@@ -90,6 +107,17 @@ def ver_indice():
         html += f"<li>{e['fecha']} - {e['titulo']} - {e['estado']} "
         html += f"<a href='/aprobar?titulo={e['titulo']}'>[Aprobar]</a></li>"
     html += "</ul>"
+
+    # Botón extra para desaprobar duplicados
+    html += """
+    <p>
+        <a href='/desaprobar_duplicados'>
+            <button style="background-color:red;color:white;padding:8px;border:none;border-radius:4px;">
+                Desaprobar duplicados
+            </button>
+        </a>
+    </p>
+    """
     return html
 
 @app.route("/aprobar")
@@ -107,6 +135,31 @@ def aprobar():
         with open("data/index.json", "w", encoding="utf-8") as f:
             for e in nuevas:
                 f.write(json.dumps(e) + "\n")
+    except FileNotFoundError:
+        return "No hay artículos cargados todavía."
+
+    return redirect("/ver")
+
+@app.route("/desaprobar_duplicados")
+def desaprobar_duplicados():
+    nuevas = []
+    vistos = set()
+    try:
+        with open("data/index.json", encoding="utf-8") as f:
+            for line in f:
+                entrada = json.loads(line)
+                titulo = entrada["titulo"]
+                if titulo in vistos:
+                    entrada["estado"] = "desaprobado"
+                else:
+                    vistos.add(titulo)
+                nuevas.append(entrada)
+
+        # Reescribir el archivo con los cambios
+        with open("data/index.json", "w", encoding="utf-8") as f:
+            for e in nuevas:
+                f.write(json.dumps(e) + "\n")
+
     except FileNotFoundError:
         return "No hay artículos cargados todavía."
 
@@ -138,5 +191,4 @@ def publicar():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
 
