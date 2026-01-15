@@ -29,15 +29,63 @@ def resumen():
         <meta charset="utf-8">
         <title>Resumen semanal</title>
         <link rel="icon" href="{url_for('static', filename='Favicon.ico')}" type="image/x-icon" />
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 40px;
+                background-color: #f9f9f9;
+                color: #333;
+            }}
+            h1 {{
+                text-align: center;
+                margin-bottom: 30px;
+            }}
+            h2 {{
+                color: #2c3e50;
+                margin-top: 20px;
+            }}
+            .articulo {{
+                background: #fff;
+                padding: 20px;
+                margin-bottom: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }}
+            .meta {{
+                font-size: 0.9em;
+                color: #777;
+                margin-bottom: 10px;
+            }}
+            hr {{
+                border: none;
+                border-top: 1px solid #ddd;
+                margin: 20px 0;
+            }}
+        </style>
     </head>
     <body>
         {menu()}
         <h1>Resumen semanal de política y economía</h1>
-        <ul>
     """
+
     for art in resp.get("articles", [])[:10]:
-        html += f"<li>{art['publishedAt']} - {art['title']} ({art['source']['name']})</li>"
-    html += "</ul></body></html>"
+        titulo = art.get("title", "Sin título")
+        descripcion = art.get("description", "Sin descripción disponible")
+        cuerpo = art.get("content", "Sin cuerpo disponible")
+        fuente = art["source"]["name"]
+        fecha = art["publishedAt"]
+
+        html += f"""
+        <div class="articulo">
+            <h2>{titulo}</h2>
+            <p class="meta"><strong>Fecha:</strong> {fecha} | <strong>Fuente:</strong> {fuente}</p>
+            <p><em>{descripcion}</em></p>
+            <p>{cuerpo}</p>
+        </div>
+        <hr>
+        """
+
+    html += "</body></html>"
     return html
 
 if __name__ == "__main__":
